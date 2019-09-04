@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file           : main.c
@@ -46,6 +45,9 @@
   *
   ******************************************************************************
   */
+/* USER CODE BEGIN Header */
+  /* The original header and copyright is probably not USER CODE. */
+  /* Is this limit of manufacturer==STMicroelectronics a concern? */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
@@ -128,10 +130,13 @@ int main(void)
   /* USER CODE BEGIN 1 */
 	/* Copy the vector table from the Flash (mapped at the base of the application
 	     load address 0x08003000) to the base address of the SRAM at 0x20000000. */
+	/* Above, it mentioned APPLICATION_ADDRESS as ending with "8000" not "3000". */
+	/* Above, the 0x20000000 did not seem guaranteed for GNUC. */
 	  for (uint32_t i = 0; i < 48; i++)
 	  {
 	    VectorTable[i] = *(__IO uint32_t*)(APPLICATION_ADDRESS + (i << 2));
 	  }
+	  /* Is this is just the above code with "i" spelled "ui32_VectorIndex"? */
 	  //volatile uint32_t *VectorTable = (volatile uint32_t *)0x20000000;
 	  //for(uint32_t ui32_VectorIndex = 0; ui32_VectorIndex < 48; ui32_VectorIndex++)
 	  //{
@@ -153,6 +158,7 @@ int main(void)
   /* USER CODE END Init */
 
   /* Configure the system clock */
+	/* What would this do without __HAL_RCC_SYSCFG_CLK_ENABLE()?  Should it also be user code? */
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
@@ -175,6 +181,7 @@ int main(void)
   MX_FATFS_Init();
   MX_SPI2_Init();
   MX_SPI1_Init();
+	/* Assuming this still makes sense after __HAL_DBGMCU_FREEZE_IWDG() */
   MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
   //WDT set to prescaler = 32, reload value = 4095. Provides about 3200ms before reset.
@@ -186,6 +193,7 @@ int main(void)
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
 
+	/* I am a little surprised that these are not with private variables.  Is it important to keep them limited to this function? */
   TCHAR fileName[100] = "log";
   char logData[1024];
   FRESULT logStatus = 0;
@@ -211,6 +219,7 @@ int main(void)
  	  logStatus = logWriteData(logData, strlen(logData), bytesWritten);
  	 __HAL_RCC_CLEAR_RESET_FLAGS();
   }
+	/* If not OK, does that just mean the SD card isn't logging? Should this trigger a faster blink or something? */
 
   WDT_RESET;
   uartHandlesInit();
@@ -226,6 +235,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   //WDT set to prescaler = 8, reload value = 4095. Provides about 800ms before reset.
+	/* Does it alway reset every 0.8 seconds, or does something in the loop reset it to prevent that? */
   IWDG_SetPrescaler(IWDG_PRESCALER_8);
   while (1)
   {
@@ -242,6 +252,7 @@ int main(void)
 		  STATUS_LED_TOGGLE;
 		  lastTime = currentTime;
 		  static uint8_t counter = 0;
+		  /* Where how is this set to anything but 0?  how long will it blink rapidly? */
 		  if(uartTimeout > 0)
 		  {
 			  blinkTime = 50;
@@ -269,8 +280,10 @@ int main(void)
 		  for(uint8_t i = 0; i<NUM_ESCS; i++)
 		  {
 			  //Dont log the same data twice
+			  /* Are you expecting that most loop instances will show no change and do nothing? If so, it might be worth saying so. */
 			  if(escData[i].timeStamp > 0 && lastPacketTime[i] != escData[i].timeStamp)
 			  {
+				  /* Is this really just a memcpy from escData? */
 				  sprintf(logData+strlen(logData), "%u,%u,%u,%u,%u,%u,%u,%u,%u,%u\n", escData[i].timeStamp, i, escData[i].packetNum, escData[i].throttleInput, escData[i].rpm, escData[i].voltage, escData[i].current, escData[i].mah, escData[i].capTemp, escData[i].fetTemp);
 				  lastPacketTime[i] = escData[i].timeStamp;
 			  }
@@ -313,6 +326,7 @@ void SystemClock_Config(void)
   }
   /**Initializes the CPU, AHB and APB busses clocks 
   */
+	/* Is this really just the AHP and APB, with CPU done above? */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
@@ -343,6 +357,7 @@ void SystemClock_Config(void)
   * @retval None
   */
 void Error_Handler(void)
+	/* It would be good to do something here.  Maybe a different blink pattern to warn pilots? and maybe write out the state for debugging? */
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
